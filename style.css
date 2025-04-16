@@ -1,0 +1,88 @@
+html {
+    overflow: hidden;
+    background-image: url('./images/fond.png');
+    background-size: 354px;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#game-container {
+    position: relative;
+}
+
+#goldDisplay {
+    text-align: center;
+    font-size: 18px;
+    margin-top: 20px;
+}
+#shopInterface {
+    position: absolute;
+    top: 20px; /* Un petit espace du haut de la page */
+    right: 20px; /* Positionné dans le coin supérieur droit */
+    width: 200px; /* Largeur du shop */
+    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.7);
+    color: white;
+    display: none; /* Caché par défaut */
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+#pv-container {
+    width: 300px;
+    height: 50px;
+    border: 1px solid #333;
+    background-color: #eee;
+    border-radius: 5px;
+    overflow: hidden;
+  }
+ 
+  #pv-bar {
+    height: 100%;
+    width: 100%;
+    background-color: green;
+    transition: width 0.3s;
+  }
+
+  #joystickContainer {
+    position: fixed;
+    bottom: 70px;
+    left: 10px;
+    width: 120px;
+    height: 120px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: none;
+    touch-action: none;
+  }
+  
+  #joystick {
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, .4);
+    border-radius: 50%;
+    position: absolute;
+    left: 30px;
+    top: 30px;
+    pointer-events: none;
+  }
+  
+  /* Affiche le joystick uniquement sur les petits écrans */
+  @media (max-width: 768px) {
+    #joystickContainer {
+      display: block;
+    }
+  }
+   /*
+  #pv-text {
+    font-family: sans-serif;
+    margin-top: 5px;
+  }
+    */
