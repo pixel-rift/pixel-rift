@@ -295,3 +295,4 @@ gameLoop();
 
 canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvas.addEventListener('click', () => shootProjectile());
+//si tu lit ca c'est que tu est à coter de moi
