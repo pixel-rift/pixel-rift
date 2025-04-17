@@ -1,9 +1,3 @@
-// Ton canvas et contexte
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
-
 // Chargement des images
 const backgroundImage = new Image(); backgroundImage.src = './images/fond.png';
 const squareImage = new Image(); squareImage.src = './images/personnage.png';
@@ -13,17 +7,37 @@ const blockImage = new Image(); blockImage.src = './images/monstre.png';
 const goldCoinImage = new Image(); goldCoinImage.src = './images/or.png';
 const rareBlockImage = new Image(); rareBlockImage.src = './images/boss.png';
 const healingSquareImage = new Image(); healingSquareImage.src = './images/soin.png';
-
+const ammoCrateImage = new Image(); ammoCrateImage.src = './images/munitions.png'; // 💥 nouvelle image
 
 // Joueur
 const square = { x: canvas.width / 2 - 32, y: canvas.height / 2 - 32, size: 64, speed: 4 };
 
-const blocks = [], rareBlocks = [], goldCoins = [], projectiles = [], fireballs = [], healingSquares = [];
+// Tableaux
+const blocks = [], rareBlocks = [], goldCoins = [], projectiles = [], fireballs = [], healingSquares = [], ammoCrates = [];
 const blockSize = 85, safeDistance = 100, minExchangeScore = 10, projectileSpeed = 5;
 let shopOpen = false, score = 0, availableProjectiles = 100, gold = 0;
 
 const goldDisplay = document.getElementById('goldDisplay');
 const maxPV = 100; let currentPV = 100;
+
+// Caisse de munitions 💥
+function createAmmoCrate(x, y) {
+    ammoCrates.push({ x: x + blockSize / 2, y: y + blockSize / 2, size: 50 });
+}
+
+function checkAmmoCrateCollision() {
+    ammoCrates.forEach((crate, i) => {
+        if (
+            crate.x < square.x + square.size &&
+            crate.x + crate.size > square.x &&
+            crate.y < square.y + square.size &&
+            crate.y + crate.size > square.y
+        ) {
+            availableProjectiles += 10;
+            ammoCrates.splice(i, 1);
+        }
+    });
+}
 
 function updatePVBar(pv) {
     currentPV = Math.max(0, Math.min(maxPV, pv));
@@ -46,39 +60,6 @@ function createHealingSquare(x, y) {
     });
 }
 
-function exchangePointsForGold() {
-    if (score >= minExchangeScore) {
-        score -= minExchangeScore;
-        gold += 5;
-        updateGoldDisplay();
-    } else alert("Vous n'avez pas assez de points!");
-}
-
-document.getElementById('shopButton').addEventListener('click', () => {
-    document.getElementById('shopInterface').style.display = 'block';
-});
-document.getElementById('closeShopButton').addEventListener('click', () => {
-    document.getElementById('shopInterface').style.display = 'none';
-});
-document.getElementById('goldButton').addEventListener('click', exchangePointsForGold);
-
-const mouse = { x: canvas.width / 2, y: canvas.height / 2 };
-
-function createBlock() {
-    let block, isValid = false;
-    while (!isValid) {
-        block = {
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            size: blockSize,
-            dx: Math.random() * 4 - 2,
-            dy: Math.random() * 4 - 2
-        };
-        if (Math.abs(block.x - square.x) > square.size + safeDistance && Math.abs(block.y - square.y) > square.size + safeDistance) isValid = true;
-    }
-    (Math.random() < 1.5 / 20 ? rareBlocks : blocks).push(block);
-}
-
 function createGoldCoin(x, y) {
     goldCoins.push({ x: x + blockSize / 2, y: y + blockSize / 2, size: 60 });
 }
@@ -87,36 +68,6 @@ function checkGoldCoinCollision() {
     goldCoins.forEach((coin, i) => {
         if (coin.x < square.x + square.size && coin.x + coin.size > square.x && coin.y < square.y + square.size && coin.y + coin.size > square.y) {
             gold++; goldCoins.splice(i, 1); updateGoldDisplay();
-        }
-    });
-}
-
-function createFireball(x, y) {
-    const dx = square.x - x, dy = square.y - y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const speed = 4;
-    fireballs.push({
-        x: x + blockSize / 1.2,
-        y: y + blockSize / 1.2,
-        size: 20,
-        dx: (dx / distance) * speed,
-        dy: (dy / distance) * speed
-    });
-}
-
-function updateFireballs() {
-    fireballs.forEach((f, i) => {
-        f.x += f.dx; f.y += f.dy;
-        ctx.drawImage(bosseProjectileImage, f.x, f.y, f.size, f.size);
-        if (f.x < 0 || f.x > canvas.width || f.y < 0 || f.y > canvas.height) fireballs.splice(i, 1);
-    });
-}
-
-function checkFireballCollisions() {
-    fireballs.forEach((f, i) => {
-        if (f.x < square.x + square.size && f.x + f.size > square.x && f.y < square.y + square.size && f.y + f.size > square.y) {
-            fireballs.splice(i, 1);
-            currentPV -= 20; updatePVBar(currentPV);
         }
     });
 }
@@ -155,6 +106,7 @@ function checkProjectileCollisions() {
                 score += 1; availableProjectiles += 2;
                 if (Math.random() < 0.1) createGoldCoin(b.x, b.y);
                 if (Math.random() < 1 / 20) createHealingSquare(b.x, b.y);
+                if (Math.random() < 0.1) createAmmoCrate(b.x, b.y); // 💥 10% pour les monstres normaux
             }
         });
         rareBlocks.forEach((b, rbIndex) => {
@@ -163,6 +115,7 @@ function checkProjectileCollisions() {
                 score += 5; availableProjectiles += 10;
                 if (Math.random() < 0.1) createGoldCoin(b.x, b.y);
                 if (Math.random() < 1 / 20) createHealingSquare(b.x, b.y);
+                if (Math.random() < 0.2) createAmmoCrate(b.x, b.y); // 💥 20% pour les monstres rares
             }
         });
     });
@@ -177,7 +130,7 @@ function checkHealingSquareCollision() {
             heal.y + heal.size > square.y
         ) {
             healingSquares.splice(i, 1);
-            updatePVBar(currentPV + 30); // Soigne de 30 PV
+            updatePVBar(currentPV + 30);
         }
     });
 }
@@ -208,49 +161,9 @@ function movePlayer() {
         if (keys['d'] && square.x + square.size < canvas.width) square.x += square.speed;
     }
 
-    // Clamping to canvas
     square.x = Math.max(0, Math.min(canvas.width - square.size, square.x));
     square.y = Math.max(0, Math.min(canvas.height - square.size, square.y));
 }
-
-let joystickActive = false;
-let joystickCenter = { x: 0, y: 0 };
-let joystickDir = { x: 0, y: 0 };
-
-const joystick = document.getElementById("joystick");
-const joystickContainer = document.getElementById("joystickContainer");
-
-joystickContainer.addEventListener("touchstart", (e) => {
-    joystickActive = true;
-    const touch = e.touches[0];
-    joystickCenter = { x: touch.clientX, y: touch.clientY };
-});
-
-joystickContainer.addEventListener("touchmove", (e) => {
-    e.preventDefault();
-    const touch = e.touches[0];
-    const dx = touch.clientX - joystickCenter.x;
-    const dy = touch.clientY - joystickCenter.y;
-    const distance = Math.min(Math.sqrt(dx * dx + dy * dy), 40); // max 40px
-    const angle = Math.atan2(dy, dx);
-
-    joystickDir.x = Math.cos(angle) * (distance / 40);
-    joystickDir.y = Math.sin(angle) * (distance / 40);
-
-    joystick.style.left = 30 + joystickDir.x * 30 + "px";
-    joystick.style.top = 30 + joystickDir.y * 30 + "px";
-}, { passive: false });
-
-joystickContainer.addEventListener("touchend", () => {
-    joystickActive = false;
-    joystickDir = { x: 0, y: 0 };
-    joystick.style.left = "30px";
-    joystick.style.top = "30px";
-});
-
-const keys = {};
-window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
-window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -278,6 +191,7 @@ function gameLoop() {
 
     healingSquares.forEach(h => ctx.drawImage(healingSquareImage, h.x, h.y, h.size, h.size));
     goldCoins.forEach(c => ctx.drawImage(goldCoinImage, c.x, c.y, c.size, c.size));
+    ammoCrates.forEach(crate => ctx.drawImage(ammoCrateImage, crate.x, crate.y, crate.size, crate.size)); // 💥
     projectiles.forEach(p => { p.x += p.dx; p.y += p.dy; ctx.drawImage(projectileImage, p.x, p.y, p.size, p.size); });
 
     drawScore();
@@ -287,12 +201,11 @@ function gameLoop() {
     updateFireballs();
     checkHealingSquareCollision();
     checkGoldCoinCollision();
+    checkAmmoCrateCollision(); // 💥
     if (Math.random() < 0.01) createBlock();
     requestAnimationFrame(gameLoop);
 }
 
 gameLoop();
-
 canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvas.addEventListener('click', () => shootProjectile());
-//si tu lit ca c'est que tu est à coter de moi
