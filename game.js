@@ -80,7 +80,7 @@ function createBlock() {
 }
 
 function createGoldCoin(x, y) {
-    goldCoins.push({ x: x + blockSize / 2, y: y + blockSize / 2, size: 40 });
+    goldCoins.push({ x: x + blockSize / 2, y: y + blockSize / 2, size: 60 });
 }
 
 function checkGoldCoinCollision() {
