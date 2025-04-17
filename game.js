@@ -14,13 +14,13 @@ const goldCoinImage = new Image(); goldCoinImage.src = './images/or.png';
 const rareBlockImage = new Image(); rareBlockImage.src = './images/boss.png';
 const healingSquareImage = new Image(); healingSquareImage.src = './images/soin.png';
 
-
 // Joueur
 const square = { x: canvas.width / 2 - 32, y: canvas.height / 2 - 32, size: 64, speed: 4 };
 
 const blocks = [], rareBlocks = [], goldCoins = [], projectiles = [], fireballs = [], healingSquares = [];
 const blockSize = 85, safeDistance = 100, minExchangeScore = 10, projectileSpeed = 5;
 let shopOpen = false, score = 0, availableProjectiles = 100, gold = 0;
+let showHitboxes = false; // Ajout pour afficher les hitboxes
 
 const goldDisplay = document.getElementById('goldDisplay');
 const maxPV = 100; let currentPV = 100;
@@ -177,7 +177,7 @@ function checkHealingSquareCollision() {
             heal.y + heal.size > square.y
         ) {
             healingSquares.splice(i, 1);
-            updatePVBar(currentPV + 30); // Soigne de 30 PV
+            updatePVBar(currentPV + 30);
         }
     });
 }
@@ -208,7 +208,6 @@ function movePlayer() {
         if (keys['d'] && square.x + square.size < canvas.width) square.x += square.speed;
     }
 
-    // Clamping to canvas
     square.x = Math.max(0, Math.min(canvas.width - square.size, square.x));
     square.y = Math.max(0, Math.min(canvas.height - square.size, square.y));
 }
@@ -231,7 +230,7 @@ joystickContainer.addEventListener("touchmove", (e) => {
     const touch = e.touches[0];
     const dx = touch.clientX - joystickCenter.x;
     const dy = touch.clientY - joystickCenter.y;
-    const distance = Math.min(Math.sqrt(dx * dx + dy * dy), 40); // max 40px
+    const distance = Math.min(Math.sqrt(dx * dx + dy * dy), 40);
     const angle = Math.atan2(dy, dx);
 
     joystickDir.x = Math.cos(angle) * (distance / 40);
@@ -249,13 +248,21 @@ joystickContainer.addEventListener("touchend", () => {
 });
 
 const keys = {};
-window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
+window.addEventListener('keydown', (e) => {
+    keys[e.key.toLowerCase()] = true;
+    if (e.key.toLowerCase() === 'k') showHitboxes = !showHitboxes;
+});
 window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     movePlayer();
+
     ctx.drawImage(squareImage, square.x, square.y, square.size, square.size);
+    if (showHitboxes) {
+        ctx.strokeStyle = 'cyan';
+        ctx.strokeRect(square.x, square.y, square.size, square.size);
+    }
 
     blocks.forEach(b => {
         if (!shopOpen) {
@@ -264,6 +271,10 @@ function gameLoop() {
             if (b.y <= 0 || b.y + b.size >= canvas.height) b.dy *= -1;
         }
         ctx.drawImage(blockImage, b.x, b.y, b.size, b.size);
+        if (showHitboxes) {
+            ctx.strokeStyle = 'red';
+            ctx.strokeRect(b.x, b.y, b.size, b.size);
+        }
     });
 
     rareBlocks.forEach(b => {
@@ -274,16 +285,23 @@ function gameLoop() {
             if (Math.random() < 0.02) createFireball(b.x, b.y);
         }
         ctx.drawImage(rareBlockImage, b.x, b.y, b.size, b.size);
+        if (showHitboxes) {
+            ctx.strokeStyle = 'purple';
+            ctx.strokeRect(b.x, b.y, b.size, b.size);
+        }
     });
 
     healingSquares.forEach(h => ctx.drawImage(healingSquareImage, h.x, h.y, h.size, h.size));
     goldCoins.forEach(c => ctx.drawImage(goldCoinImage, c.x, c.y, c.size, c.size));
-    projectiles.forEach(p => { p.x += p.dx; p.y += p.dy; ctx.drawImage(projectileImage, p.x, p.y, p.size, p.size); });
+    projectiles.forEach(p => {
+        p.x += p.dx; p.y += p.dy;
+        ctx.drawImage(projectileImage, p.x, p.y, p.size, p.size);
+    });
 
     drawScore();
     checkProjectileCollisions();
     checkBlockCollisionWithSquare();
-    checkFireballCollisions();
+    checkFireballCollisions();ad
     updateFireballs();
     checkHealingSquareCollision();
     checkGoldCoinCollision();
@@ -295,4 +313,4 @@ gameLoop();
 
 canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvas.addEventListener('click', () => shootProjectile());
-//si tu lit ca c'est que tu est à coter de moi
+//ca va vous ?    :)
