@@ -1,3 +1,4 @@
+
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -12,13 +13,12 @@ const blockImage = new Image(); blockImage.src = './images/monstre.png';
 const goldCoinImage = new Image(); goldCoinImage.src = './images/or.png';
 const rareBlockImage = new Image(); rareBlockImage.src = './images/boss.png';
 const healingSquareImage = new Image(); healingSquareImage.src = './images/soin.png';
-const ammoCrateImage = new Image(); ammoCrateImage.src = './images/munitions.png'; // ← image caisse
+
 
 // Joueur
 const square = { x: canvas.width / 2 - 32, y: canvas.height / 2 - 32, size: 64, speed: 4 };
 
-// Éléments du jeu
-const blocks = [], rareBlocks = [], goldCoins = [], projectiles = [], fireballs = [], healingSquares = [], ammoCrates = [];
+const blocks = [], rareBlocks = [], goldCoins = [], projectiles = [], fireballs = [], healingSquares = [];
 const blockSize = 85, safeDistance = 100, minExchangeScore = 10, projectileSpeed = 5;
 let shopOpen = false, score = 0, availableProjectiles = 100, gold = 0;
 
@@ -39,25 +39,44 @@ function updateGoldDisplay() {
 }
 
 function createHealingSquare(x, y) {
-    healingSquares.push({ x: x + blockSize / 2, y: y + blockSize / 2, size: 40 });
-}
-
-function createAmmoCrate(x, y) {
-    ammoCrates.push({ x: x + blockSize / 2, y: y + blockSize / 2, size: 50 });
-}
-
-function checkAmmoCrateCollision() {
-    ammoCrates.forEach((crate, i) => {
-        if (
-            crate.x < square.x + square.size &&
-            crate.x + crate.size > square.x &&
-            crate.y < square.y + square.size &&
-            crate.y + crate.size > square.y
-        ) {
-            availableProjectiles += 10;
-            ammoCrates.splice(i, 1);
-        }
+    healingSquares.push({
+        x: x + blockSize / 2,
+        y: y + blockSize / 2,
+        size: 40
     });
+}
+
+function exchangePointsForGold() {
+    if (score >= minExchangeScore) {
+        score -= minExchangeScore;
+        gold += 5;
+        updateGoldDisplay();
+    } else alert("Vous n'avez pas assez de points!");
+}
+
+document.getElementById('shopButton').addEventListener('click', () => {
+    document.getElementById('shopInterface').style.display = 'block';
+});
+document.getElementById('closeShopButton').addEventListener('click', () => {
+    document.getElementById('shopInterface').style.display = 'none';
+});
+document.getElementById('goldButton').addEventListener('click', exchangePointsForGold);
+
+const mouse = { x: canvas.width / 2, y: canvas.height / 2 };
+
+function createBlock() {
+    let block, isValid = false;
+    while (!isValid) {
+        block = {
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: blockSize,
+            dx: Math.random() * 4 - 2,
+            dy: Math.random() * 4 - 2
+        };
+        if (Math.abs(block.x - square.x) > square.size + safeDistance && Math.abs(block.y - square.y) > square.size + safeDistance) isValid = true;
+    }
+    (Math.random() < 1.5 / 20 ? rareBlocks : blocks).push(block);
 }
 
 function createGoldCoin(x, y) {
@@ -136,7 +155,6 @@ function checkProjectileCollisions() {
                 score += 1; availableProjectiles += 2;
                 if (Math.random() < 0.1) createGoldCoin(b.x, b.y);
                 if (Math.random() < 1 / 20) createHealingSquare(b.x, b.y);
-                if (Math.random() < 0.1) createAmmoCrate(b.x, b.y); // 10%
             }
         });
         rareBlocks.forEach((b, rbIndex) => {
@@ -145,7 +163,6 @@ function checkProjectileCollisions() {
                 score += 5; availableProjectiles += 10;
                 if (Math.random() < 0.1) createGoldCoin(b.x, b.y);
                 if (Math.random() < 1 / 20) createHealingSquare(b.x, b.y);
-                if (Math.random() < 0.2) createAmmoCrate(b.x, b.y); // 20%
             }
         });
     });
@@ -160,7 +177,7 @@ function checkHealingSquareCollision() {
             heal.y + heal.size > square.y
         ) {
             healingSquares.splice(i, 1);
-            updatePVBar(currentPV + 30);
+            updatePVBar(currentPV + 30); // Soigne de 30 PV
         }
     });
 }
@@ -191,14 +208,10 @@ function movePlayer() {
         if (keys['d'] && square.x + square.size < canvas.width) square.x += square.speed;
     }
 
+    // Clamping to canvas
     square.x = Math.max(0, Math.min(canvas.width - square.size, square.x));
     square.y = Math.max(0, Math.min(canvas.height - square.size, square.y));
 }
-
-const mouse = { x: canvas.width / 2, y: canvas.height / 2 };
-const keys = {};
-window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
-window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 
 let joystickActive = false;
 let joystickCenter = { x: 0, y: 0 };
@@ -218,7 +231,7 @@ joystickContainer.addEventListener("touchmove", (e) => {
     const touch = e.touches[0];
     const dx = touch.clientX - joystickCenter.x;
     const dy = touch.clientY - joystickCenter.y;
-    const distance = Math.min(Math.sqrt(dx * dx + dy * dy), 40);
+    const distance = Math.min(Math.sqrt(dx * dx + dy * dy), 40); // max 40px
     const angle = Math.atan2(dy, dx);
 
     joystickDir.x = Math.cos(angle) * (distance / 40);
@@ -235,21 +248,9 @@ joystickContainer.addEventListener("touchend", () => {
     joystick.style.top = "30px";
 });
 
-function createBlock() {
-    let block, isValid = false;
-    while (!isValid) {
-        block = {
-            x: Math.random() * canvas.width,
-            y: Math.random() * canvas.height,
-            size: blockSize,
-            dx: Math.random() * 4 - 2,
-            dy: Math.random() * 4 - 2
-        };
-        if (Math.abs(block.x - square.x) > square.size + safeDistance &&
-            Math.abs(block.y - square.y) > square.size + safeDistance) isValid = true;
-    }
-    (Math.random() < 1.5 / 20 ? rareBlocks : blocks).push(block);
-}
+const keys = {};
+window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
+window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 
 function gameLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -277,7 +278,6 @@ function gameLoop() {
 
     healingSquares.forEach(h => ctx.drawImage(healingSquareImage, h.x, h.y, h.size, h.size));
     goldCoins.forEach(c => ctx.drawImage(goldCoinImage, c.x, c.y, c.size, c.size));
-    ammoCrates.forEach(crate => ctx.drawImage(ammoCrateImage, crate.x, crate.y, crate.size, crate.size));
     projectiles.forEach(p => { p.x += p.dx; p.y += p.dy; ctx.drawImage(projectileImage, p.x, p.y, p.size, p.size); });
 
     drawScore();
@@ -287,11 +287,12 @@ function gameLoop() {
     updateFireballs();
     checkHealingSquareCollision();
     checkGoldCoinCollision();
-    checkAmmoCrateCollision();
     if (Math.random() < 0.01) createBlock();
     requestAnimationFrame(gameLoop);
 }
 
 gameLoop();
+
 canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 canvas.addEventListener('click', () => shootProjectile());
+//si tu lit ca c'est que tu est à coter de moi
